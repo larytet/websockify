@@ -86,10 +86,21 @@ Traffic Legend:
             msg += " (using SSL)"
         self.log_message(msg)
 
+        '''
         tsock = websocket.WebSocketServer.socket(self.server.target_host,
                                                  self.server.target_port,
                 connect=True, use_ssl=self.server.ssl_target, unix_socket=self.server.unix_target)
-
+        '''
+        self.server_sock = server_sock = socket.socket()
+        server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        tsock_port = self.server.target_port + 1
+        server_sock.bind(('', tsock_port))
+        self.msg("Listen on port %d for incoming connection from VNC server" % tsock_port)
+        server_sock.listen(1)
+        self.msg("Block in accept ... ")
+        tsock, address = server_sock.accept()
+        self.msg("Accepted connection from {0}".format(address))
+        
         self.request.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
         if not self.server.wrap_cmd and not self.server.unix_target:
             tsock.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
@@ -136,6 +147,7 @@ Traffic Legend:
         """
         Proxy client WebSocket to normal target socket.
         """
+        self.msg(target.getpeername())
         cqueue = []
         c_pend = 0
         tqueue = []
